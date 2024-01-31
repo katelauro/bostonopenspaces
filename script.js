@@ -100,7 +100,8 @@ function getSpacesInNeighborhood() {
   if (result.length < 2) {
     result = [result];
   }
-  console.log(result);
+  console.log(spaces)
+  console.log(result)
   return result;
 }
 
