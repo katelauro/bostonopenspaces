@@ -1,0 +1,71 @@
+body {
+    font-family: "Helvetica", sans-serif;
+}
+
+h1 {
+    margin-top: 1%;
+    margin-left: 2%;
+}
+
+#map {
+    width: 55%;
+    height: 80%;
+    float: left;
+}
+
+#neighborhoodinfo {
+    width: 40%;
+    margin-top: -53%;
+    margin-bottom: 5%;
+    margin-right: 4%;
+    margin-left: 1%;
+    float: right;
+}
+
+#minimap {
+    width: 75%;
+    aspect-ratio: 1/1;
+    padding: 1%;
+    margin: 2% 12.5% 5% 12.5%;
+}
+
+#spaces {
+    width: 100%;
+}
+
+#spaces th {
+    text-align: left;
+    border: 1px solid black;
+    border-bottom: 2px solid black;
+    padding: 1%;
+}
+
+#spaces,
+#spaces td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 1%;
+}
+
+#dropdown {
+    float: left;
+    width: 53%;
+    margin-top: 1%;
+    margin-left: 2%;
+}
+
+#desc {
+    float: left;
+    width: 53%;
+    margin-top: -1%;
+    margin-left: 2%;
+}
+
+#instruct {
+    margin-top: 2%;
+}
+
+.caption {
+    font-style: italic;
+    font-size: .8em;
+}

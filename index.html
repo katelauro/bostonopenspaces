@@ -1,0 +1,51 @@
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <!-- Sets content tyle of page -->
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252" />
+  <!-- Title of page in tab in browser !-->
+  <title>boston open space</title>
+  <!-- Links scripct code to D3 -->
+  <link rel="stylesheet" href="main.css" />
+</head>
+
+<body>
+  <!-- linking to Javascript docs -->
+  <script src="https://d3js.org/d3.v6.js"></script>
+  <script type="module" src="script.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <h1>Open Space in Boston</h1>
+  <div id="desc">According to The Trust for Public Land, Boston is ranked 10th out of the country's
+    largest 100 cities for access to public parks. Click on your neighborhood to see what spaces it
+    contains!
+    <div class="caption">Data from Analyze Boston (last updated January 24, 2024).</div>
+  </div>
+  <div id="map"></div>
+  <div id="dropdown">
+    <label for="spacetypes">Type of space: </label>
+    <select name="spacetypes" id="spacetypes"">
+      <option value=" All">All</option>
+      <option value="Malls, Squares & Plazas">Malls, Squares & Plazas</option>
+      <option value="Parks, Playgrounds & Athletic Fields">Parks, Playgrounds & Athletic Fields</option>
+      <option value="Cemeteries & Burying Grounds">Cemeteries & Burying Grounds</option>
+      <option value="Community Gardens">Community Gardens</option>
+      <option value="Urban Wilds">Urban Wilds</option>
+      7 <option value="Open Land">Open Land</option>
+      <option value="Open Land">Other Open Land</option>
+    </select>
+  </div>
+  <div id="neighborhoodinfo">
+    <div id="neighborhoodname"></div>
+    <div id="minimap"></div>
+    <table id="spaces">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="instruct">
+    </div>
+  </div>
+
+</body>
+
+</html>
