@@ -1,6 +1,7 @@
 const store = {};
 var spaceType = "All";
 var neighborhoods = {};
+var streets = {};
 var spaces = {};
 var projection;
 var pathGenerator;
@@ -10,13 +11,15 @@ var miniPathGenerator;
 var miniMap;
 var clicked = [];
 var neighborhoodInData;
-var isMinimapOpen = false;
+var isMiniMapOpen = false;
+var streetsInNeighborhood = [];
 function loadData() {
   return Promise.all([
     d3.json(
       "Boston_Neighborhood_Boundaries_Approximated_by_2020_Census_Tracts.geojson"
     ),
     d3.json("Open_Space.geojson"),
+    d3.json("Boston_Street_Segments.geojson"),
   ]).then((datasets) => {
     store.neighborhoods = datasets[0];
     if (spaceType != "All") {
@@ -30,6 +33,7 @@ function loadData() {
         (d) => d.properties.DISTRICT != "Harbor Islands"
       );
     }
+    store.streets = datasets[2];
     return store;
   });
 }
@@ -40,11 +44,31 @@ const MAP_HEIGHT = parseFloat(d3.select("#map").style("height"));
 const MINIMAP_WIDTH = parseFloat(d3.select("#minimap").style("width")) - 4;
 const MINIMAP_HEIGHT = parseFloat(d3.select("#minimap").style("height")) - 4;
 
-function showNeighborhoods() {
+const colorScale = d3
+  .scaleOrdinal()
+  .domain([
+    "Malls, Squares & Plazas",
+    "Parks, Playgrounds & Athletic Fields",
+    "Cemeteries & Burying Grounds",
+    "Community Gardens",
+    "Urban Wilds",
+    "Open Land",
+  ])
+  .range(["#440154", "#46327e", "#365c8d", "#277f8e", "#1fa187", "#4ac16d"]);
+
+function createMap() {
   const filteredNeighborhoods = store.neighborhoods.features.filter(
     (d) => d.properties.neighborhood != "Harbor Islands"
   );
   neighborhoods = filteredNeighborhoods.map((d) => {
+    return turf.rewind(d, { reverse: true });
+  });
+
+  const filteredStreets = store.streets.features.filter(
+    (d) =>
+      d.properties.NBHD_L != "Harbor Islands" && d.properties.ST_NAME != "Tafts"
+  );
+  streets = filteredStreets.map((d) => {
     return turf.rewind(d, { reverse: true });
   });
 
@@ -61,67 +85,54 @@ function showNeighborhoods() {
     .append("svg")
     .attr("width", MAP_WIDTH)
     .attr("height", MAP_HEIGHT);
+}
 
+function showStreets() {
   neighborhoodMap
-    .selectAll("path")
+    .selectAll("path.streets")
+    .data(streets)
+    .enter()
+    .append("path")
+    .attr("class", "streets")
+    .attr("d", pathGenerator)
+    .style("fill", "transparent")
+    .style("stroke", "lightgrey");
+}
+
+function showNeighborhoods() {
+  neighborhoodMap
+    .selectAll("path.neighborhoods")
     .data(neighborhoods)
     .enter()
     .append("path")
+    .attr("class", "neighborhoods")
     .attr("id", (d) => d.properties.neighborhood)
     .attr("d", pathGenerator)
     .style("fill", "transparent")
     .style("stroke", "black")
     .on("click", function () {
-      isMinimapOpen = false;
-      d3.selectAll("#neighborhoodname h2").remove();
-      d3.selectAll("#minimap svg").remove();
-      d3.selectAll("#spaces tr").remove();
-      d3.selectAll("#instruct .caption").remove();
-      d3.select(clicked)
-        .transition()
-        .style("fill", "transparent")
-        .duration(250);
-      if (clicked != this) {
-        d3.select(this).transition().style("fill", "lightgrey").duration(250);
-        d3.select("#instruct").append().attr("class", "caption").text("Hover over an item in the table to see its location on the map.")
-        neighborhoodClicked(this);
+      if (isMiniMapOpen) {
+        d3.selectAll("#neighborhoodname h2").remove();
+        d3.selectAll("#minimap svg").remove();
+        d3.selectAll("#spaces tr").remove();
+        d3.selectAll("#instruct .caption").remove();
+        isMiniMapOpen = false;
+        d3.select(clicked)
+          .transition()
+          .style("fill", "transparent")
+          .duration(250);
+      } else {
+        d3.select(this).transition().style("fill", "#fde725").duration(250);
+        d3.select("#instruct")
+          .append()
+          .attr("class", "caption")
+          .text(
+            "Hover over an item in the table to see its location on the map."
+          );
+        createMiniMap(this);
         clicked = this;
       }
     });
-}
-
-function getSpacesInNeighborhood() {
-  var result = [];
-  for (let i = 0; i < spaces.length; i++) {
-    if (turf.booleanIntersects(spaces[i], neighborhoodInData)) {
-      result.push(spaces[i]);
-    }
-  }
-  return result;
-}
-
-function addRowsToTable(spaces) {
-  for (let i = 0; i < spaces.length; i++) {
-    var row = d3.select("#spaces tbody").append("tr");
-    row.append("td").html(spaces[i].properties.SITE_NAME);
-    row.append("td").html(spaces[i].properties.ADDRESS);
-    row.on("mouseover", function () {
-      d3.select(this).style("background", "orange");
-      miniMap
-        .selectAll("path.highlight")
-        .data([spaces[i]])
-        .enter()
-        .append("path")
-        .attr("class", "highlight")
-        .attr("d", miniPathGenerator)
-        .style("fill", "orange")
-        .style("stroke", "orange");
-    });
-    row.on("mouseout", function () {
-      d3.select(this).style("background", "transparent");
-      d3.selectAll("path.highlight").remove();
-    });
-  }
 }
 
 function showSpaces() {
@@ -136,24 +147,33 @@ function showSpaces() {
     .append("path")
     .attr("class", "spaces")
     .attr("d", pathGenerator)
-    .style("fill", "forestgreen")
-    .style("stroke", "lightgrey");
+    .style("fill", function (d) {
+      return colorScale(d.properties.TypeLong);
+    })
+    .style("stroke", function (d) {
+      return colorScale(d.properties.TypeLong);
+    });
 }
 
-function neighborhoodClicked(neighborhood) {
-  isMinimapOpen = true;
+function createMiniMap(neighborhood) {
+  isMiniMapOpen = true;
 
   neighborhoodInData = neighborhoods.find(
     (d) => d.properties.neighborhood == neighborhood.id
   );
-  var spacesInNeighborhood = getSpacesInNeighborhood();
+
+  streetsInNeighborhood = [];
+  for (let i = 0; i < streets.length; i++) {
+    if (turf.booleanIntersects(streets[i], neighborhoodInData)) {
+      streetsInNeighborhood.push(streets[i]);
+    }
+  }
 
   d3.select("#neighborhoodname").append("h2").html(neighborhood.id);
 
   var head = d3.select("#spaces tbody").append("tr");
   head.append("th").html("Space");
   head.append("th").html("Address");
-  addRowsToTable(spacesInNeighborhood);
 
   miniProjection = d3
     .geoMercator()
@@ -167,49 +187,114 @@ function neighborhoodClicked(neighborhood) {
     .append("svg")
     .attr("width", MINIMAP_WIDTH)
     .attr("height", MINIMAP_HEIGHT);
+
+  if (document.getElementById("streetscheckbox").checked) {
+    showMiniStreets();
+  }
+  showMiniNeighborhood();
+  showMiniSpaces();
+}
+
+function showMiniStreets() {
   miniMap
-    .selectAll("path")
-    .data([neighborhoodInData])
+    .selectAll("path.ministreets")
+    .data(streetsInNeighborhood)
     .enter()
     .append("path")
+    .attr("class", "ministreets")
     .attr("d", miniPathGenerator)
     .style("fill", "transparent")
-    .style("stroke", "black");
-  miniMap
-    .selectAll("path.neighborhoodspaces")
-    .data(spacesInNeighborhood)
-    .enter()
-    .append("path")
-    .attr("class", "neighborhoodspaces")
-    .attr("d", miniPathGenerator)
-    .style("fill", "forestgreen")
     .style("stroke", "lightgrey");
 }
 
-function neighborhoodData() {
-  var spacesInNeighborhood = getSpacesInNeighborhood();
+function showMiniNeighborhood() {
+  miniMap
+    .selectAll("path.minineighborhood")
+    .data([neighborhoodInData])
+    .enter()
+    .append("path")
+    .attr("class", "minineighborhood")
+    .attr("d", miniPathGenerator)
+    .style("fill", "transparent")
+    .style("stroke", "black");
+}
+
+function showMiniSpaces() {
+  var spacesInNeighborhood = [];
+  for (let i = 0; i < spaces.length; i++) {
+    if (turf.booleanIntersects(spaces[i], neighborhoodInData)) {
+      spacesInNeighborhood.push(spaces[i]);
+    }
+  }
 
   miniMap
-    .selectAll("path.neighborhoodspaces")
+    .selectAll("path.minispaces")
     .data(spacesInNeighborhood)
     .enter()
     .append("path")
-    .attr("class", "neighborhoodspaces")
+    .attr("class", "minispaces")
     .attr("d", miniPathGenerator)
-    .style("fill", "forestgreen")
-    .style("stroke", "lightgrey");
+    .style("fill", function (d) {
+      return colorScale(d.properties.TypeLong);
+    })
+    .style("stroke", function (d) {
+      return colorScale(d.properties.TypeLong);
+    });
 
-  if (isMinimapOpen) {
-    addRowsToTable(spacesInNeighborhood);
+  addRowsToTable(spacesInNeighborhood);
+}
+
+function addRowsToTable(spaces) {
+  for (let i = 0; i < spaces.length; i++) {
+    var row = d3.select("#spaces tbody").append("tr");
+    row.append("td").html(spaces[i].properties.SITE_NAME);
+    row.append("td").html(spaces[i].properties.ADDRESS);
+    row.on("mouseover", function () {
+      d3.select(this).style("background", "#fde725");
+      miniMap
+        .selectAll("path.highlight")
+        .data([spaces[i]])
+        .enter()
+        .append("path")
+        .attr("class", "highlight")
+        .attr("d", miniPathGenerator)
+        .style("fill", "#fde725")
+        .style("stroke", "#fde725");
+    });
+    row.on("mouseout", function () {
+      d3.select(this).style("background", "transparent");
+      d3.selectAll("path.highlight").remove();
+    });
   }
 }
 
 document.getElementById("spacetypes").addEventListener("change", () => {
   d3.selectAll("path.spaces").remove();
-  d3.selectAll("path.neighborhoodspaces").remove();
+  d3.selectAll("path.minispaces").remove();
   d3.selectAll("#spaces td").remove();
   var spaceTypes = document.getElementById("spacetypes");
   spaceType = spaceTypes.options[spaceTypes.selectedIndex].value;
-  loadData().then(showSpaces).then(neighborhoodData);
+  loadData().then(showSpaces).then(showMiniSpaces);
 });
-loadData().then(showNeighborhoods).then(showSpaces);
+document.getElementById("streetscheckbox").addEventListener("click", () => {
+  if (document.getElementById("streetscheckbox").checked) {
+    d3.selectAll("path.streets").remove();
+    d3.selectAll("path.neighborhoods").remove();
+    d3.selectAll("path.spaces").remove();
+    showStreets();
+    showNeighborhoods();
+    showSpaces();
+    if (isMiniMapOpen) {
+      d3.selectAll("path.ministreets").remove();
+      d3.selectAll("path.minineighborhood").remove();
+      d3.selectAll("path.minispaces").remove();
+      showMiniStreets();
+      showMiniNeighborhood();
+      showMiniSpaces();
+    }
+  } else {
+    d3.selectAll("path.streets").remove();
+    d3.selectAll("path.ministreets").remove();
+  }
+});
+loadData().then(createMap).then(showNeighborhoods).then(showSpaces);
