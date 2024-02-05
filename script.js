@@ -22,17 +22,7 @@ function loadData() {
     d3.json("Boston_Street_Segments.geojson"),
   ]).then((datasets) => {
     store.neighborhoods = datasets[0];
-    if (spaceType != "All") {
-      store.spaces = datasets[1].features.filter(
-        (d) =>
-          d.properties.TypeLong === spaceType &&
-          d.properties.DISTRICT != "Harbor Islands"
-      );
-    } else {
-      store.spaces = datasets[1].features.filter(
-        (d) => d.properties.DISTRICT != "Harbor Islands"
-      );
-    }
+    store.spaces = datasets[1];
     store.streets = datasets[2];
     return store;
   });
@@ -55,6 +45,23 @@ const colorScale = d3
     "Open Land",
   ])
   .range(["#440154", "#46327e", "#365c8d", "#277f8e", "#1fa187", "#4ac16d"]);
+
+function loadSpaces() {
+  if (spaceType != "All") {
+    spaces = store.spaces.features.filter(
+      (d) =>
+        d.properties.TypeLong === spaceType &&
+        d.properties.DISTRICT != "Harbor Islands"
+    );
+  } else {
+    spaces = store.spaces.features.filter(
+      (d) => d.properties.DISTRICT != "Harbor Islands"
+    );
+  }
+  spaces = spaces.map((d) => {
+    return turf.rewind(d, { reverse: true });
+  });
+}
 
 function createMap() {
   const filteredNeighborhoods = store.neighborhoods.features.filter(
@@ -111,7 +118,8 @@ function showNeighborhoods() {
     .style("fill", "transparent")
     .style("stroke", "black")
     .on("click", function () {
-      if (isMiniMapOpen) {
+      var initialMiniMapStatus = isMiniMapOpen;
+      if (initialMiniMapStatus) {
         d3.selectAll("#neighborhoodname h2").remove();
         d3.selectAll("#minimap svg").remove();
         d3.selectAll("#spaces tr").remove();
@@ -121,8 +129,13 @@ function showNeighborhoods() {
           .transition()
           .style("fill", "transparent")
           .duration(250);
-      } else {
-        d3.select(this).transition().style("fill", "#fde725").duration(250);
+      }
+      if (clicked != this || !initialMiniMapStatus) {
+        d3.select(this)
+          .attr("class", "highlight")
+          .transition()
+          .style("fill", "#fde725")
+          .duration(250);
         d3.select("#instruct")
           .append()
           .attr("class", "caption")
@@ -132,14 +145,14 @@ function showNeighborhoods() {
         createMiniMap(this);
         clicked = this;
       }
+    })
+    .append("title")
+    .text(function (d) {
+      return d.properties.neighborhood;
     });
 }
 
 function showSpaces() {
-  spaces = store.spaces.map((d) => {
-    return turf.rewind(d, { reverse: true });
-  });
-
   neighborhoodMap
     .selectAll("path.spaces")
     .data(spaces)
@@ -274,7 +287,9 @@ document.getElementById("spacetypes").addEventListener("change", () => {
   d3.selectAll("#spaces td").remove();
   var spaceTypes = document.getElementById("spacetypes");
   spaceType = spaceTypes.options[spaceTypes.selectedIndex].value;
-  loadData().then(showSpaces).then(showMiniSpaces);
+  loadSpaces();
+  showSpaces();
+  showMiniSpaces();
 });
 document.getElementById("streetscheckbox").addEventListener("click", () => {
   if (document.getElementById("streetscheckbox").checked) {
@@ -297,4 +312,8 @@ document.getElementById("streetscheckbox").addEventListener("click", () => {
     d3.selectAll("path.ministreets").remove();
   }
 });
-loadData().then(createMap).then(showNeighborhoods).then(showSpaces);
+loadData()
+  .then(loadSpaces)
+  .then(createMap)
+  .then(showNeighborhoods)
+  .then(showSpaces);
