@@ -31,6 +31,7 @@ h1 {
 
 #spaces {
     width: 100%;
+    margin-top:2%;
 }
 
 #spaces th {
@@ -68,4 +69,8 @@ h1 {
 .caption {
     font-style: italic;
     font-size: .8em;
+}
+
+#areainfo {
+    margin-top: -4%;
 }

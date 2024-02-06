@@ -12,7 +12,6 @@ var miniMap;
 var clicked = [];
 var neighborhoodInData;
 var isMiniMapOpen = false;
-var streetsInNeighborhood = [];
 function loadData() {
   return Promise.all([
     d3.json(
@@ -39,12 +38,21 @@ const colorScale = d3
   .domain([
     "Malls, Squares & Plazas",
     "Parks, Playgrounds & Athletic Fields",
+    "Parkways, Reservations & Beaches",
     "Cemeteries & Burying Grounds",
     "Community Gardens",
     "Urban Wilds",
     "Open Land",
   ])
-  .range(["#440154", "#46327e", "#365c8d", "#277f8e", "#1fa187", "#4ac16d"]);
+  .range([
+    "#440154",
+    "#472d7b",
+    "#3b528b",
+    "#2c728e",
+    "#21918c",
+    "#28ae80",
+    "#5ec962",
+  ]);
 
 function loadSpaces() {
   if (spaceType != "All") {
@@ -124,6 +132,7 @@ function showNeighborhoods() {
         d3.selectAll("#minimap svg").remove();
         d3.selectAll("#spaces tr").remove();
         d3.selectAll("#instruct .caption").remove();
+        d3.selectAll("#areainfo .caption").remove();
         isMiniMapOpen = false;
         d3.select(clicked)
           .transition()
@@ -132,7 +141,7 @@ function showNeighborhoods() {
       }
       if (clicked != this || !initialMiniMapStatus) {
         d3.select(this)
-          .attr("class", "highlight")
+          .attr("class", "selected")
           .transition()
           .style("fill", "#fde725")
           .duration(250);
@@ -175,13 +184,6 @@ function createMiniMap(neighborhood) {
     (d) => d.properties.neighborhood == neighborhood.id
   );
 
-  streetsInNeighborhood = [];
-  for (let i = 0; i < streets.length; i++) {
-    if (turf.booleanIntersects(streets[i], neighborhoodInData)) {
-      streetsInNeighborhood.push(streets[i]);
-    }
-  }
-
   d3.select("#neighborhoodname").append("h2").html(neighborhood.id);
 
   var head = d3.select("#spaces tbody").append("tr");
@@ -209,6 +211,13 @@ function createMiniMap(neighborhood) {
 }
 
 function showMiniStreets() {
+  var streetsInNeighborhood = [];
+  for (let i = 0; i < streets.length; i++) {
+    if (turf.booleanIntersects(streets[i], neighborhoodInData)) {
+      streetsInNeighborhood.push(streets[i]);
+    }
+  }
+
   miniMap
     .selectAll("path.ministreets")
     .data(streetsInNeighborhood)
@@ -234,9 +243,11 @@ function showMiniNeighborhood() {
 
 function showMiniSpaces() {
   var spacesInNeighborhood = [];
+  var spacesArea = 0;
   for (let i = 0; i < spaces.length; i++) {
     if (turf.booleanIntersects(spaces[i], neighborhoodInData)) {
       spacesInNeighborhood.push(spaces[i]);
+      spacesArea += turf.area(spaces[i]);
     }
   }
 
@@ -253,6 +264,29 @@ function showMiniSpaces() {
     .style("stroke", function (d) {
       return colorScale(d.properties.TypeLong);
     });
+
+  spacesArea = spacesArea / 1e6;
+  var spacesPercentage =
+    (spacesArea / (turf.area(neighborhoodInData) / 1e6)) * 100;
+  var spaceTypeString = "";
+  if (spaceType != "All") {
+    spaceTypeString = spaceType.toLowerCase();
+  } else {
+    spaceTypeString = "open space";
+  }
+  d3.select("#areainfo")
+    .append()
+    .attr("class", "caption")
+    .text(
+      neighborhoodInData.properties.neighborhood +
+        " has " +
+        spacesArea.toFixed(2) +
+        " square kilometers of " +
+        spaceTypeString +
+        " (" +
+        spacesPercentage.toFixed(0) +
+        "% of its total area)."
+    );
 
   addRowsToTable(spacesInNeighborhood);
 }
@@ -285,6 +319,7 @@ document.getElementById("spacetypes").addEventListener("change", () => {
   d3.selectAll("path.spaces").remove();
   d3.selectAll("path.minispaces").remove();
   d3.selectAll("#spaces td").remove();
+  d3.selectAll("#areainfo .caption").remove();
   var spaceTypes = document.getElementById("spacetypes");
   spaceType = spaceTypes.options[spaceTypes.selectedIndex].value;
   loadSpaces();
@@ -303,6 +338,8 @@ document.getElementById("streetscheckbox").addEventListener("click", () => {
       d3.selectAll("path.ministreets").remove();
       d3.selectAll("path.minineighborhood").remove();
       d3.selectAll("path.minispaces").remove();
+      d3.selectAll("#spaces td").remove();
+      d3.selectAll("#areainfo .caption").remove();
       showMiniStreets();
       showMiniNeighborhood();
       showMiniSpaces();

@@ -5,7 +5,7 @@
   <!-- Sets content tyle of page -->
   <meta http-equiv="Content-Type" content="text/html; charset=windows-1252" />
   <!-- Title of page in tab in browser !-->
-  <title>boston open space</title>
+  <title>Boston Open Spaces</title>
   <!-- Links scripct code to D3 -->
   <link rel="stylesheet" href="main.css" />
 </head>
@@ -15,11 +15,12 @@
   <script src="https://d3js.org/d3.v6.js"></script>
   <script type="module" src="script.js"></script>
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-  <h1>Open Space in Boston</h1>
-  <div id="desc">According to The Trust for Public Land, Boston is ranked 10th out of the country's
-    largest 100 cities for access to public parks. Click on your neighborhood to see what spaces it
-    contains!
-    <div class="caption">Data from Analyze Boston (last updated January 24, 2024).</div>
+  <h1>Open Spaces in Boston</h1>
+  <div id="desc">According to <a href="https://www.tpl.org/parkscore">The Trust for Public Land</a>, Boston is ranked
+    10th out of the country's
+    largest 100 cities for access to public parks. Click on your neighborhood to see its parks and open spaces!
+    <div class="caption">Data from <a href="https://data.boston.gov/dataset/open-space">Analyze Boston</a> (last updated
+      January 24, 2024).</div>
   </div>
   <div id="map"></div>
   <div id="controls">
@@ -28,6 +29,7 @@
       <option value="All">All</option>
       <option value="Malls, Squares & Plazas">Malls, Squares & Plazas</option>
       <option value="Parks, Playgrounds & Athletic Fields">Parks, Playgrounds & Athletic Fields</option>
+      <option value="Parkways, Reservations & Beaches">Parkways, Reservations & Beaches</option>
       <option value="Cemeteries & Burying Grounds">Cemeteries & Burying Grounds</option>
       <option value="Community Gardens">Community Gardens</option>
       <option value="Urban Wilds">Urban Wilds</option>
@@ -39,6 +41,7 @@
   <div id="neighborhoodinfo">
     <div id="neighborhoodname"></div>
     <div id="minimap"></div>
+    <div id="areainfo"></div>
     <table id="spaces">
       <thead></thead>
       <tbody></tbody>
