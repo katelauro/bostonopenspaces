@@ -324,7 +324,9 @@ document.getElementById("spacetypes").addEventListener("change", () => {
   spaceType = spaceTypes.options[spaceTypes.selectedIndex].value;
   loadSpaces();
   showSpaces();
-  showMiniSpaces();
+  if (isMiniMapOpen) {
+    showMiniSpaces();
+  }
 });
 document.getElementById("streetscheckbox").addEventListener("click", () => {
   if (document.getElementById("streetscheckbox").checked) {
