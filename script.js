@@ -33,6 +33,19 @@ const MAP_HEIGHT = parseFloat(d3.select("#map").style("height"));
 const MINIMAP_WIDTH = parseFloat(d3.select("#minimap").style("width")) - 4;
 const MINIMAP_HEIGHT = parseFloat(d3.select("#minimap").style("height")) - 4;
 
+var zoom = d3
+  .zoom()
+  .scaleExtent([1, 5])
+  .translateExtent([
+    [0, 0],
+    [MINIMAP_WIDTH, MINIMAP_HEIGHT],
+  ])
+  .on("zoom", handleZoom);
+
+function handleZoom(e) {
+  d3.selectAll("#minimap path").attr("transform", e.transform);
+}
+
 const colorScale = d3
   .scaleOrdinal()
   .domain([
@@ -45,13 +58,13 @@ const colorScale = d3
     "Open Land",
   ])
   .range([
-    "#440154",
-    "#472d7b",
-    "#3b528b",
-    "#2c728e",
-    "#21918c",
-    "#28ae80",
-    "#5ec962",
+    "#aaba37",
+    "#567c1c",
+    "#8ea52e",
+    "#3a6712",
+    "#729125",
+    "#023e00",
+    "#1e5309",
   ]);
 
 function loadSpaces() {
@@ -124,7 +137,7 @@ function showNeighborhoods() {
     .attr("id", (d) => d.properties.neighborhood)
     .attr("d", pathGenerator)
     .style("fill", "transparent")
-    .style("stroke", "black")
+    .style("stroke", "#212121")
     .on("click", function () {
       var initialMiniMapStatus = isMiniMapOpen;
       if (initialMiniMapStatus) {
@@ -133,6 +146,19 @@ function showNeighborhoods() {
         d3.selectAll("#spaces tr").remove();
         d3.selectAll("#instruct .caption").remove();
         d3.selectAll("#areainfo .caption").remove();
+        d3.select("#spaces").attr("data-sortable-initialized", "false");
+        d3.select("#spacescontainer").style(
+          "border-top",
+          "1px solid transparent"
+        );
+        d3.select("#spacescontainer").style(
+          "border-bottom",
+          "1px solid transparent"
+        );
+        d3.select("#spacescontainer").style(
+          "border-right",
+          "1px solid transparent"
+        );
         isMiniMapOpen = false;
         d3.select(clicked)
           .transition()
@@ -143,7 +169,7 @@ function showNeighborhoods() {
         d3.select(this)
           .attr("class", "selected")
           .transition()
-          .style("fill", "#fde725")
+          .style("fill", "#e4216f")
           .duration(250);
         d3.select("#instruct")
           .append()
@@ -152,6 +178,7 @@ function showNeighborhoods() {
             "Hover over an item in the table to see its location on the map."
           );
         createMiniMap(this);
+        Sortable.init();
         clicked = this;
       }
     })
@@ -186,8 +213,13 @@ function createMiniMap(neighborhood) {
 
   d3.select("#neighborhoodname").append("h2").html(neighborhood.id);
 
-  var head = d3.select("#spaces tbody").append("tr");
+  d3.select("#spacescontainer").style("border-top", "1px solid #212121");
+  d3.select("#spacescontainer").style("border-bottom", "1px solid #212121");
+  d3.select("#spacescontainer").style("border-right", "1px solid #212121");
+
+  var head = d3.select("#spaces thead").append("tr");
   head.append("th").html("Space");
+  head.append("th").html("Area (square meters)");
   head.append("th").html("Address");
 
   miniProjection = d3
@@ -208,13 +240,31 @@ function createMiniMap(neighborhood) {
   }
   showMiniNeighborhood();
   showMiniSpaces();
+  d3.select("#minimap").call(zoom);
+  d3.select("#minimap").call(zoom.transform, d3.zoomIdentity);
 }
 
 function showMiniStreets() {
   var streetsInNeighborhood = [];
-  for (let i = 0; i < streets.length; i++) {
-    if (turf.booleanIntersects(streets[i], neighborhoodInData)) {
-      streetsInNeighborhood.push(streets[i]);
+  var neighborhoodBbox = turf.bbox(neighborhoodInData);
+  var streetsInBoundingBox = streets.filter((d) => {
+    var streetBbox = turf.bbox(d);
+    return (
+      neighborhoodBbox[0] < streetBbox[2] &&
+      neighborhoodBbox[2] > streetBbox[0] &&
+      neighborhoodBbox[1] < streetBbox[3] &&
+      neighborhoodBbox[3] > streetBbox[1]
+    );
+  });
+  for (let i = 0; i < streetsInBoundingBox.length; i++) {
+    if (turf.booleanIntersects(streetsInBoundingBox[i], neighborhoodInData)) {
+      var splitters = turf.lineSplit(streetsInBoundingBox[i], neighborhoodInData);
+      if (splitters.features.length > 0) {
+        streetsInNeighborhood.push(...splitters.features.filter((d) => turf.booleanPointInPolygon(turf.center(d), neighborhoodInData)));
+      }
+      else {
+      streetsInNeighborhood.push(streetsInBoundingBox[i]);
+      }
     }
   }
 
@@ -238,16 +288,31 @@ function showMiniNeighborhood() {
     .attr("class", "minineighborhood")
     .attr("d", miniPathGenerator)
     .style("fill", "transparent")
-    .style("stroke", "black");
+    .style("stroke", "#212121");
 }
 
 function showMiniSpaces() {
   var spacesInNeighborhood = [];
+  var neighborhoodBbox = turf.bbox(neighborhoodInData);
   var spacesArea = 0;
-  for (let i = 0; i < spaces.length; i++) {
-    if (turf.booleanIntersects(spaces[i], neighborhoodInData)) {
-      spacesInNeighborhood.push(spaces[i]);
-      spacesArea += turf.area(spaces[i]);
+  var spacesInBoundingBox = spaces.filter((d) => {
+    var spacesBbox = turf.bbox(d);
+    return (
+      neighborhoodBbox[0] < spacesBbox[2] &&
+      neighborhoodBbox[2] > spacesBbox[0] &&
+      neighborhoodBbox[1] < spacesBbox[3] &&
+      neighborhoodBbox[3] > spacesBbox[1]
+    );
+  });
+  for (let i = 0; i < spacesInBoundingBox.length; i++) {
+    if (turf.booleanIntersects(spacesInBoundingBox[i], neighborhoodInData)) {
+      var clippedSpace = turf.rewind(
+        turf.intersect(turf.featureCollection([spacesInBoundingBox[i], neighborhoodInData])),
+        { reverse: true }
+      );
+      clippedSpace.properties = spacesInBoundingBox[i].properties;
+      spacesInNeighborhood.push(clippedSpace);
+      spacesArea += turf.area(clippedSpace);
     }
   }
 
@@ -295,18 +360,20 @@ function addRowsToTable(spaces) {
   for (let i = 0; i < spaces.length; i++) {
     var row = d3.select("#spaces tbody").append("tr");
     row.append("td").html(spaces[i].properties.SITE_NAME);
+    row.append("td").html((spaces[i].properties.ShapeSTArea / 10.7639).toFixed(2));
     row.append("td").html(spaces[i].properties.ADDRESS);
     row.on("mouseover", function () {
-      d3.select(this).style("background", "#fde725");
+      d3.select(this).style("background", "#e4216f");
       miniMap
         .selectAll("path.highlight")
         .data([spaces[i]])
         .enter()
         .append("path")
         .attr("class", "highlight")
+        .attr("transform", d3.zoomTransform(d3.select("#minimap").node()))
         .attr("d", miniPathGenerator)
-        .style("fill", "#fde725")
-        .style("stroke", "#fde725");
+        .style("fill", "#e4216f")
+        .style("stroke", "#e4216f");
     });
     row.on("mouseout", function () {
       d3.select(this).style("background", "transparent");

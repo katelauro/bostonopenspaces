@@ -1,76 +1,98 @@
 body {
     font-family: "Helvetica", sans-serif;
-}
-
-h1 {
+    color: #212121;
+    background:#fafafa;
+  }
+  
+  h1 {
     margin-top: 1%;
     margin-left: 2%;
-}
+  }
 
-#map {
+  #map {
     width: 55%;
     height: 80%;
     float: left;
-}
-
-#neighborhoodinfo {
+  }
+  
+  #neighborhoodinfo {
+    height: 90%;
     width: 40%;
-    margin-top: -53%;
-    margin-bottom: 5%;
-    margin-right: 4%;
-    margin-left: 1%;
+    margin: -50% 4% 5% 1%;
     float: right;
-}
-
-#minimap {
+  }
+  
+  #neighborhoodname {
+    margin-top: -2%;
+    margin-bottom: 4%;
+  }
+  
+  #minimap {
     width: 75%;
     aspect-ratio: 1/1;
     padding: 1%;
-    margin: 2% 12.5% 5% 12.5%;
-}
-
-#spaces {
+    margin: -3% 12.5% 0% 12.5%;
+  }
+  
+  #spacescontainer {
+    margin-top: 2%;
+    max-height: 35%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-top: 1px solid transparent;
+    border-bottom: 1px transparent;
+    border-right:1px transparent;
+  }
+  
+  #spaces {
     width: 100%;
-    margin-top:2%;
-}
-
-#spaces th {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  
+  #spaces thead {
+    top: 0;
+    position: sticky;
+    background: #fafafa;
+  }
+  
+  #spaces th {
     text-align: left;
-    border: 1px solid black;
-    border-bottom: 2px solid black;
+    border-bottom: 2px solid #212121;
+    border-left: 1px solid #212121;
     padding: 1%;
-}
-
-#spaces,
-#spaces td {
-    border: 1px solid black;
-    border-collapse: collapse;
+  }
+  
+  #spaces td {
+    text-align: left;
+    border-top: 1px solid #212121;
+    border-left: 1px solid #212121;
     padding: 1%;
-}
-
-#controls {
+  }
+  
+  #controls {
     float: left;
     width: 53%;
     margin-top: 1%;
     margin-left: 2%;
-}
-
-#desc {
+  }
+  
+  #desc {
     float: left;
     width: 53%;
     margin-top: -1%;
     margin-left: 2%;
-}
-
-#instruct {
+  }
+  
+  #instruct {
     margin-top: 2%;
-}
-
-.caption {
+  }
+  
+  .caption {
     font-style: italic;
-    font-size: .8em;
-}
-
-#areainfo {
+    font-size: 0.8em;
+  }
+  
+  #areainfo {
     margin-top: -4%;
-}
+  }
