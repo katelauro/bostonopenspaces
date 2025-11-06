@@ -393,6 +393,7 @@ document.getElementById("spacetypes").addEventListener("change", () => {
   showSpaces();
   if (isMiniMapOpen) {
     showMiniSpaces();
+    d3.selectAll("#minimap path").attr("transform", d3.zoomTransform(d3.select("#minimap").node()));
   }
 });
 document.getElementById("streetscheckbox").addEventListener("click", () => {
@@ -412,6 +413,7 @@ document.getElementById("streetscheckbox").addEventListener("click", () => {
       showMiniStreets();
       showMiniNeighborhood();
       showMiniSpaces();
+      d3.selectAll("#minimap path").attr("transform", d3.zoomTransform(d3.select("#minimap").node()));
     }
   } else {
     d3.selectAll("path.streets").remove();
